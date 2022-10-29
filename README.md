@@ -1,13 +1,10 @@
 # Reinforcement Learning Project 2022
 
-## Tech Stack
-
-- python=3.9.?
-
-REPORT:
+## Report:
 
 https://www.overleaf.com/8949439933svssxpxfvrtr
 
+## Getting Started
 
 ### Anaconda Setup
 
