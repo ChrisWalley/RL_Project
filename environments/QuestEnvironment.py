@@ -25,6 +25,22 @@ class RenderingWrapper(gym.Wrapper):
         )
         self.action_history = []
 
+    def revert(self, actions=None):
+
+        state = self.env.reset()
+
+        if actions:
+            for action in actions:
+                _ = self.env.step(action)
+        else:
+            if self.action_history:
+                self.action_history.pop()
+
+            for action in self.action_history:
+                state, _, _, _ = self.env.step(action)
+
+        return state
+
     def clone(self):
 
         env_clone = QuestEnvironment().create(
@@ -81,29 +97,29 @@ class QuestEnvironment:
             nethack.CompassCardinalDirection.E,
             nethack.CompassCardinalDirection.S,
             nethack.CompassCardinalDirection.W,
-            nethack.Command.SEARCH,
-            nethack.Command.KICK,
-            nethack.Command.OPEN,
-            nethack.Command.LOOK, 
-            nethack.Command.JUMP, 
-            nethack.Command.PICKUP,
-            nethack.Command.WIELD, 
-            nethack.Command.SWAP,
-            nethack.Command.EAT,
-            nethack.Command.ZAP,
-            nethack.Command.LOOT,
-            nethack.Command.PUTON,
-            nethack.Command.APPLY,
-            nethack.Command.CAST,
-            nethack.Command.DIP,
-            nethack.Command.READ,
-            nethack.Command.INVOKE,
-            nethack.Command.RUSH,
-            nethack.Command.WEAR,
-            nethack.Command.ENHANCE,
-            nethack.Command.MOVE,
-            nethack.Command.MOVEFAR,
-            nethack.Command.FIGHT
+            # nethack.Command.SEARCH,
+            # nethack.Command.KICK,
+            # nethack.Command.OPEN,
+            # nethack.Command.LOOK, 
+            # nethack.Command.JUMP, 
+            # nethack.Command.PICKUP,
+            # nethack.Command.WIELD, 
+            # nethack.Command.SWAP,
+            # nethack.Command.EAT,
+            # nethack.Command.ZAP,
+            # nethack.Command.LOOT,
+            # nethack.Command.PUTON,
+            # nethack.Command.APPLY,
+            # nethack.Command.CAST,
+            # nethack.Command.DIP,
+            # nethack.Command.READ,
+            # nethack.Command.INVOKE,
+            # nethack.Command.RUSH,
+            # nethack.Command.WEAR,
+            # nethack.Command.ENHANCE,
+            # nethack.Command.MOVE,
+            # nethack.Command.MOVEFAR,
+            # nethack.Command.FIGHT
         )
 
     # create the environment
@@ -129,12 +145,6 @@ class QuestEnvironment:
         reward_manager.add_kill_event("goblin", reward=1)
         reward_manager.add_kill_event("jackal", reward=1)
         reward_manager.add_kill_event("giant rat", reward=1)
-        
-        def exploration_reward(env, obs, action, nobs):
-            reward = 0
-            return reward
-
-        reward_manager.add_custom_reward_fn(exploration_reward)
 
         # make the environment
         env = gym.make(
