@@ -10,9 +10,10 @@ SEED = 42
 # wrapper for rendering the env as an image
 class RenderingWrapper(gym.Wrapper):
 
-    def __init__(self, env):
+    def __init__(self, env, seed):
         super().__init__(env)
         self.env = env
+        self.seed_value = seed
         self.viewer = rendering.SimpleImageViewer()
         self.viewer.width = 1280
         self.viewer.height = 520
@@ -57,8 +58,6 @@ class RenderingWrapper(gym.Wrapper):
             _ = env_clone.step(action)
 
         return env_clone
-            
-        
 
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
@@ -76,6 +75,7 @@ class RenderingWrapper(gym.Wrapper):
 
     def reset(self):
         obs = self.env.reset()
+        self.env.seed(self.seed_value)
         self.pixels = obs['pixel']
 
         # TODO: make sure this is ok
@@ -97,16 +97,18 @@ class QuestEnvironment:
             nethack.CompassCardinalDirection.E,
             nethack.CompassCardinalDirection.S,
             nethack.CompassCardinalDirection.W,
+            nethack.Command.OPEN,
+            nethack.Command.PICKUP,
+            # nethack.Command.CAST,
+            # nethack.Command.TELEPORT,
+            # nethack.Command.WIELD, 
             # nethack.Command.SEARCH,
             # nethack.Command.KICK,
-            # nethack.Command.OPEN,
             # nethack.Command.LOOK, 
             # nethack.Command.JUMP, 
-            # nethack.Command.PICKUP,
-            # nethack.Command.WIELD, 
             # nethack.Command.SWAP,
             # nethack.Command.EAT,
-            # nethack.Command.ZAP,
+            #nethack.Command.ZAP,
             # nethack.Command.LOOT,
             # nethack.Command.PUTON,
             # nethack.Command.APPLY,
@@ -142,9 +144,9 @@ class QuestEnvironment:
         # https://minihack.readthedocs.io/en/latest/getting-started/reward.html?highlight=RewardManager#reward-manager
         reward_manager = RewardManager()
         reward_manager.add_kill_event("minotaur", reward=10)
-        reward_manager.add_kill_event("goblin", reward=1)
-        reward_manager.add_kill_event("jackal", reward=1)
-        reward_manager.add_kill_event("giant rat", reward=1)
+        #reward_manager.add_kill_event("goblin", reward=1)
+        #reward_manager.add_kill_event("jackal", reward=1)
+        #reward_manager.add_kill_event("giant rat", reward=1)
 
         # make the environment
         env = gym.make(
@@ -156,12 +158,12 @@ class QuestEnvironment:
             reward_win = reward_win,
             penalty_step = penalty_step,
             penalty_time = penalty_time,
-            max_episode_steps = max_episode_steps
+            max_episode_steps = max_episode_steps,
+            obs_crop_h=21,
+            obs_crop_w=21,
         )
 
-        env = RenderingWrapper(env)
-
-        env.seed(SEED)
+        env = RenderingWrapper(env, SEED)
 
         #print(f"Number of actions: {env.action_space.n}")
 
