@@ -88,17 +88,35 @@ class RenderingWrapper(gym.Wrapper):
             self.viewer.close()
             self.viewer = None
 
+
+
 class QuestEnvironment:
+
+    def __init__(self):
+        
+        self.N = dict()
+
+    def exploration_reward(self, env, obs, action, nobs) -> float:
+
+            blstats = obs[4]
+            coords = (blstats[0], blstats[1])
+
+            if coords not in self.N:
+                self.N[coords] = 1
+            else:
+                self.N[coords] += 1
+
+            return -0.01 * self.N[coords]
 
     def _get_actions(self):
 
         return (
-            nethack.CompassCardinalDirection.N,
             nethack.CompassCardinalDirection.E,
+            nethack.CompassCardinalDirection.N,
             nethack.CompassCardinalDirection.S,
             nethack.CompassCardinalDirection.W,
-            nethack.Command.OPEN,
-            nethack.Command.PICKUP,
+            #nethack.Command.OPEN,
+            #nethack.Command.PICKUP,
             # nethack.Command.CAST,
             # nethack.Command.TELEPORT,
             # nethack.Command.WIELD, 
@@ -108,7 +126,7 @@ class QuestEnvironment:
             # nethack.Command.JUMP, 
             # nethack.Command.SWAP,
             # nethack.Command.EAT,
-            #nethack.Command.ZAP,
+            # nethack.Command.ZAP,
             # nethack.Command.LOOT,
             # nethack.Command.PUTON,
             # nethack.Command.APPLY,
@@ -132,7 +150,8 @@ class QuestEnvironment:
             reward_win = 10,
             penalty_step = -0.002,
             penalty_time = 0.002,
-            max_episode_steps = 5000
+            max_episode_steps = 5000,
+            seed=SEED
         ):
 
         import numpy as np
@@ -148,22 +167,24 @@ class QuestEnvironment:
         #reward_manager.add_kill_event("jackal", reward=1)
         #reward_manager.add_kill_event("giant rat", reward=1)
 
+        #reward_manager.add_custom_reward_fn(self.exploration_reward)
+
         # make the environment
         env = gym.make(
             "MiniHack-Quest-Hard-v0",
             actions = self._get_actions(),
             reward_manager = reward_manager,
-            observation_keys = ("glyphs", "pixel", "glyphs_crop", "blstats"),
+            observation_keys = ("glyphs", "pixel", "glyphs_crop", "blstats", "pixel_crop", "chars_crop"),
             reward_lose = reward_lose,
             reward_win = reward_win,
             penalty_step = penalty_step,
             penalty_time = penalty_time,
             max_episode_steps = max_episode_steps,
-            obs_crop_h=21,
-            obs_crop_w=21,
+            obs_crop_h=9,
+            obs_crop_w=9,
         )
 
-        env = RenderingWrapper(env, SEED)
+        env = RenderingWrapper(env, seed)
 
         #print(f"Number of actions: {env.action_space.n}")
 
