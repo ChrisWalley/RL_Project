@@ -89,24 +89,34 @@ class RenderingWrapper(gym.Wrapper):
             self.viewer = None
 
 
-
 class QuestEnvironment:
 
     def __init__(self):
         
-        self.N = dict()
+        self.visit_counts = dict()
+        self.coord_rewards = dict()
 
-    def exploration_reward(self, env, obs, action, nobs) -> float:
+    def message_reward(self, env, obs, action, nobs):
 
-            blstats = obs[4]
-            coords = (blstats[0], blstats[1])
+        message = obs[5]
+        msg = bytes(message)
 
-            if coords not in self.N:
-                self.N[coords] = 1
-            else:
-                self.N[coords] += 1
+        if msg == b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00':
+            return 0.1
 
-            return -0.01 * self.N[coords]
+        return 0
+
+    def move_right_reward(self, env, obs, action, nobs):
+        
+        blstats = obs[4]
+        coords = (blstats[0], blstats[1])
+
+        if self.previous_coordinates[1] < coords[1]:
+            self.previous_coordinates = coords
+            return 0.00001
+        else:
+            return -0.00001
+
 
     def _get_actions(self):
 
@@ -115,17 +125,20 @@ class QuestEnvironment:
             nethack.CompassCardinalDirection.N,
             nethack.CompassCardinalDirection.S,
             nethack.CompassCardinalDirection.W,
-            #nethack.Command.OPEN,
+            #nethack.MiscDirection.UP,
+            nethack.MiscDirection.DOWN,
+            nethack.Command.OPEN,
+            #nethack.Command.MOVE,
             #nethack.Command.PICKUP,
             # nethack.Command.CAST,
             # nethack.Command.TELEPORT,
             # nethack.Command.WIELD, 
-            # nethack.Command.SEARCH,
+            #nethack.Command.SEARCH,
             # nethack.Command.KICK,
-            # nethack.Command.LOOK, 
+            #nethack.Command.LOOK, 
             # nethack.Command.JUMP, 
             # nethack.Command.SWAP,
-            # nethack.Command.EAT,
+            nethack.Command.EAT,
             # nethack.Command.ZAP,
             # nethack.Command.LOOT,
             # nethack.Command.PUTON,
@@ -137,7 +150,6 @@ class QuestEnvironment:
             # nethack.Command.RUSH,
             # nethack.Command.WEAR,
             # nethack.Command.ENHANCE,
-            # nethack.Command.MOVE,
             # nethack.Command.MOVEFAR,
             # nethack.Command.FIGHT
         )
@@ -157,7 +169,7 @@ class QuestEnvironment:
         import numpy as np
 
         self.visited_states_map = np.zeros((21,79)) # a map of counts for each state
-        
+        self.previous_coordinates = (0,0)
 
         # setup the reward manager
         # https://minihack.readthedocs.io/en/latest/getting-started/reward.html?highlight=RewardManager#reward-manager
@@ -166,20 +178,37 @@ class QuestEnvironment:
         #reward_manager.add_kill_event("goblin", reward=1)
         #reward_manager.add_kill_event("jackal", reward=1)
         #reward_manager.add_kill_event("giant rat", reward=1)
+        
+        #reward_manager.add_custom_reward_fn(self.move_right_reward)
 
-        #reward_manager.add_custom_reward_fn(self.exploration_reward)
+        # reward not bumping into things...
+        reward_manager.add_message_event('', 0.01)
+
+        reward_manager.add_custom_reward_fn(self.message_reward)
+
+        #reward_manager.add_message_event(
+        #    [
+        #        "What a strange direction!  Never mind.",
+        #         "You don't have anything to eat.",
+        #         "You can't go down here.",
+        #         "It's solid stone.",
+        #         "You faint from lack of food.  You regain consciousness."
+        #    ],
+        #    -0.001
+        #)
+
 
         # make the environment
         env = gym.make(
             "MiniHack-Quest-Hard-v0",
             actions = self._get_actions(),
             reward_manager = reward_manager,
-            observation_keys = ("glyphs", "pixel", "glyphs_crop", "blstats", "pixel_crop", "chars_crop"),
+            observation_keys = ("glyphs", "pixel", "glyphs_crop", "blstats", "pixel_crop", "chars_crop", "message", "screen_descriptions"),
             reward_lose = reward_lose,
             reward_win = reward_win,
             penalty_step = penalty_step,
             penalty_time = penalty_time,
-            max_episode_steps = max_episode_steps,
+            max_episode_steps = 100000000000000000,
             obs_crop_h=9,
             obs_crop_w=9,
         )
