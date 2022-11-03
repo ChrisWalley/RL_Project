@@ -127,7 +127,7 @@ class QuestEnvironment:
             nethack.CompassCardinalDirection.W,
             #nethack.MiscDirection.UP,
             nethack.MiscDirection.DOWN,
-            nethack.Command.OPEN,
+            #nethack.Command.OPEN,
             #nethack.Command.MOVE,
             #nethack.Command.PICKUP,
             # nethack.Command.CAST,
