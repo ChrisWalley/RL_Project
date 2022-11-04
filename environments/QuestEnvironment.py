@@ -146,10 +146,11 @@ class QuestEnvironment:
     # https://minihack.readthedocs.io/en/latest/envs/skills/quest.html
     def create(
             self,
+            env_type = "MiniHack-Quest-Hard-v0",
             reward_lose = -10,
             reward_win = 10,
             penalty_step = -0.002,
-            penalty_time = 0.002,
+            penalty_time = -0.002,
             max_episode_steps = 5000,
             seed=SEED
         ):
@@ -170,8 +171,9 @@ class QuestEnvironment:
         #reward_manager.add_custom_reward_fn(self.exploration_reward)
 
         # make the environment
+
         env = gym.make(
-            "MiniHack-Quest-Hard-v0",
+            env_type,
             actions = self._get_actions(),
             reward_manager = reward_manager,
             observation_keys = ("glyphs", "pixel", "glyphs_crop", "blstats", "pixel_crop", "chars_crop"),
