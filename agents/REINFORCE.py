@@ -1,29 +1,28 @@
 import sys
 from os.path import exists
-
+import cv2
 from agents.AutoEncoder import Encoder, Decoder
 from agents.PolicyValueNetwork import PolicyValueNetwork
-
-# resolve path for notebook
-sys.path.append('../')
 import math
 import torch
-import random
 import numpy as np
 import pandas as pd
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from environments.QuestEnvironment import QuestEnvironment
 
+# resolve path for notebook
+sys.path.append('../')
 # if there is a Cuda GPU, then we want to use it
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model_filepath = 'model_weights.pth'
 AE_encoder_model_filepath = 'E_model_weights.pth'
 AE_decoder_model_filepath = 'D_model_weights.pth'
-OBS_SPACE = 'glyphs'
-AE_OBS_SPACE = 'pixel'
-max_steps_per_level = [500, 2000, 5000, 5000]
+OBS_SPACE = 'glyphs_crop'
+AE_OBS_SPACE = 'pixel_crop'
+max_steps_per_level = [2000, 5000, 10000, 15000]
 mazes = ['MiniHack-MazeWalk-9x9-v0', 'MiniHack-MazeWalk-15x15-v0', 'MiniHack-MazeWalk-45x19-v0', 'MiniHack-Quest-Hard-v0']
+
 
 def get_exploration_reward(state, reward):
     s = state['blstats']
@@ -32,12 +31,12 @@ def get_exploration_reward(state, reward):
     if coords not in visit_counts:
         visit_counts[coords] = 1
         coord_rewards[coords] = reward
-        return 0.01
     else:
         visit_counts[coords] += 1
         coord_rewards[coords] += reward
 
     return reward * math.sqrt(math.log(visit_counts[coords]))
+
 
 def convert_observation(obs, space, epsilon=10e-3):
     obs = obs[space]
@@ -53,18 +52,25 @@ def compute_returns(rewards, gamma):
     return returns
 
 
+def compute_returns_naive_baseline(rewards, gamma):
+
+    baseline = sum(rewards) / len(rewards)
+    returns = sum(r*(gamma**i) for i, r in enumerate(rewards)) - baseline
+    return returns
+
+
 def load_env_and_models(difficulty_level, agent_lr, AE_lr):
 
     environment = QuestEnvironment().create(
         env_type=mazes[difficulty_level],
         reward_lose=reward_lose,
         reward_win=reward_win,
-        penalty_step=-0.001,
-        penalty_time=-0.0001,
+        penalty_step=-0.01,
+        penalty_time=-0.001,
         max_episode_steps=max_steps_per_level[difficulty_level],
         seed=seed
     )
-    latent_space_dim = environment.observation_space.spaces[OBS_SPACE].shape[0] *\
+    latent_space_dim = 3*environment.observation_space.spaces[OBS_SPACE].shape[0] *\
                        environment.observation_space.spaces[OBS_SPACE].shape[1]
 
     agent = PolicyValueNetwork(environment.action_space.n, agent_lr, latent_space_dim).to(device)
@@ -97,12 +103,12 @@ if __name__ == "__main__":
     num_episodes = 1000
     agent_alpha = 10e-5
     AE_alpha = 10e-5
-    gamma = 0.995
+    gamma = 0.9995
     seed = 42
     reward_lose = -1
     reward_win = 1
 
-    maze_difficulty_level = 0
+    maze_difficulty_level = 3
     max_difficulty_level = 3
 
     env, max_steps, nn, encoder, decoder, AE_optimizer, AE_input_shape = load_env_and_models(maze_difficulty_level,
@@ -111,6 +117,7 @@ if __name__ == "__main__":
 
     # training
     cumulative_returns = []
+    cumulative_losses = []
 
     for k in range(num_episodes):
         obs = env.reset()
@@ -123,11 +130,15 @@ if __name__ == "__main__":
         total_AE_loss = []
         for h in range(max_steps):
 
-            state_pixels = np.array(obs[AE_OBS_SPACE]/255., dtype=np.float32).reshape((AE_input_shape[2], AE_input_shape[0], AE_input_shape[1]))
+            state_pixels = np.array(obs[AE_OBS_SPACE] / 255., dtype=np.float32).reshape(
+               (AE_input_shape[2], AE_input_shape[0], AE_input_shape[1]))
 
             encoded_state = encoder(state_pixels)
             decoded_state = decoder(encoded_state.to(device))
-            AE_loss = F.mse_loss(decoded_state, torch.tensor(state_pixels).to(device))
+
+            decoded_frame = decoded_state.detach().clone().cpu().numpy().reshape(AE_input_shape)
+
+            AE_loss = F.mse_loss(decoded_state.squeeze(0), torch.tensor(state_pixels).to(device))
 
             AE_optimizer.zero_grad()
             AE_loss.backward()
@@ -135,10 +146,13 @@ if __name__ == "__main__":
 
             total_AE_loss.append(AE_loss.item())
 
-            state = encoded_state
+            combined = np.concatenate([decoded_frame, obs[AE_OBS_SPACE]/255.])
 
-            action, probs = nn.action(state)
-            value = nn.value(state)
+            cv2.imshow('Frame', combined)
+            cv2.waitKey(5)
+
+            action, probs = nn.action(encoded_state)
+            value = nn.value(encoded_state)
 
             States.append(state_pixels)
             Actions.append(action)
@@ -171,15 +185,15 @@ if __name__ == "__main__":
 
         T = len(Rewards)
 
-        G = [compute_returns(Rewards[t:], gamma) for t in range(T)]
+        G = [compute_returns_naive_baseline(Rewards[t:], gamma) for t in range(T)]
         G = torch.tensor(G, requires_grad=True).float().to(device)
         G = (G - G.mean()) / G.std()
 
         Values = torch.tensor(Values, requires_grad=True).float().to(device)
         Probs = torch.tensor(Probs, requires_grad=True).float().to(device)
 
-        errors = (G-Values)
-        policy_loss = - Probs * errors
+        errors = Values-G
+        policy_loss = - errors * Probs
         nn.policy_optimizer.zero_grad()
         policy_loss.sum().backward(retain_graph=True)
         nn.policy_optimizer.step()
@@ -202,7 +216,6 @@ if __name__ == "__main__":
         torch.save(encoder.state_dict(), AE_encoder_model_filepath)
         torch.save(decoder.state_dict(), AE_decoder_model_filepath)
 
-
         if len(cumulative_returns) > 10 and np.mean(cumulative_returns[-10:])/reward_win > 0.85:
             print('\n\n Increasing environment difficulty! \n\n')
             maze_difficulty_level = min(maze_difficulty_level+1, max_difficulty_level)
@@ -216,6 +229,7 @@ if __name__ == "__main__":
         Loss = np.reshape(Loss, (np.shape(Loss)[0], 1))
 
         cumulative_returns.append(sum(Rewards))
+        cumulative_losses.append(sum(Loss))
         # Plot stuff
         window = int(max_steps)
         plt.figure(figsize=(10, 4))
@@ -230,39 +244,11 @@ if __name__ == "__main__":
         plt.title('Loss')
         plt.xlabel('Step')
         plt.ylabel('Loss')
-        plt.plot(pd.DataFrame(Loss))
-        plt.plot(pd.DataFrame(Loss).rolling(10).mean())
+        plt.plot(pd.DataFrame(cumulative_losses))
+        plt.plot(pd.DataFrame(cumulative_losses).rolling(min(10, len(cumulative_losses))).mean())
         plt.grid(True)
         plt.savefig('REINFORCE.png')
         plt.close()
-        #plt.show()
 
-    for _ in range(5):
-
-        Rewards = []
-
-        obs = env.reset()
-        obs = convert_observation(obs)
-
-        done = False
-        env.render()
-
-        steps = 0
-
-        while not done and steps <= max_steps:
-            steps += 1
-
-            probs = nn(obs)
-
-            c = torch.distributions.Categorical(probs=probs)
-            action = c.sample().item()
-
-            obs_, rew, done, _info = env.step(action)
-            obs_ = convert_observation(obs_)
-            env.render()
-
-            Rewards.append(rew)
-
-        print(f'Reward: {sum(Rewards)}')
-
+    cv2.destroyAllWindows()
     env.close()

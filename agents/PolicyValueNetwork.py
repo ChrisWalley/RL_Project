@@ -17,7 +17,7 @@ class PolicyValueNetwork(torch.nn.Module):
             torch.nn.Softmax(dim=-1)
         )
 
-        self.policy_optimizer = torch.optim.Adam(self.policy_net.parameters(), lr = alpha)
+        self.policy_optimizer = torch.optim.RMSprop(self.policy_net.parameters(), lr = alpha)
 
         #self.value_net = torch.nn.Sequential(
         #    torch.nn.Linear(self.obs_space, self.obs_space*2),
@@ -35,7 +35,7 @@ class PolicyValueNetwork(torch.nn.Module):
             torch.nn.Linear(self.obs_space, 1),
         )
 
-        self.value_optimizer = torch.optim.Adam(self.value_net.parameters(), lr = alpha)
+        self.value_optimizer = torch.optim.RMSprop(self.value_net.parameters(), lr = alpha)
 
     def action(self, x):
         x = x.to(next(self.policy_net.parameters()).device)
