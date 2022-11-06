@@ -5,15 +5,13 @@ from nle import nethack
 from minihack import RewardManager
 from gym.envs.classic_control import rendering
 
-SEED = 42
 
 # wrapper for rendering the env as an image
 class RenderingWrapper(gym.Wrapper):
 
-    def __init__(self, env, seed):
+    def __init__(self, env):
         super().__init__(env)
         self.env = env
-        self.seed_value = seed
         self.viewer = rendering.SimpleImageViewer()
         self.viewer.width = 1280
         self.viewer.height = 520
@@ -75,7 +73,6 @@ class RenderingWrapper(gym.Wrapper):
 
     def reset(self):
         obs = self.env.reset()
-        self.env.seed(self.seed_value)
         self.pixels = obs['pixel']
 
         # TODO: make sure this is ok
@@ -151,8 +148,7 @@ class QuestEnvironment:
             reward_win = 10,
             penalty_step = -0.002,
             penalty_time = -0.002,
-            max_episode_steps = 5000,
-            seed=SEED
+            max_episode_steps = 5000
         ):
 
         import numpy as np
@@ -186,7 +182,7 @@ class QuestEnvironment:
             obs_crop_w=9,
         )
 
-        env = RenderingWrapper(env, seed)
+        env = RenderingWrapper(env)
 
         #print(f"Number of actions: {env.action_space.n}")
 

@@ -2,7 +2,7 @@ import torch
 
 class PolicyValueNetwork(torch.nn.Module):
 
-    def __init__(self, action_space, alpha, obs_space):
+    def __init__(self, action_space, obs_space):
         super(PolicyValueNetwork, self).__init__()
 
         self.obs_space = obs_space
@@ -17,15 +17,6 @@ class PolicyValueNetwork(torch.nn.Module):
             torch.nn.Softmax(dim=-1)
         )
 
-        self.policy_optimizer = torch.optim.RMSprop(self.policy_net.parameters(), lr = alpha)
-
-        #self.value_net = torch.nn.Sequential(
-        #    torch.nn.Linear(self.obs_space, self.obs_space*2),
-        #    torch.nn.ReLU(),
-        #    torch.nn.Linear(self.obs_space*2, self.obs_space),
-        #    torch.nn.ReLU(),
-        #    torch.nn.Linear(self.obs_space, 1)
-        #)
         self.value_net = torch.nn.Sequential(
             torch.nn.Linear(self.obs_space, 128),
             torch.nn.Linear(128, 64),
@@ -34,8 +25,6 @@ class PolicyValueNetwork(torch.nn.Module):
             torch.nn.ReLU(),
             torch.nn.Linear(self.obs_space, 1),
         )
-
-        self.value_optimizer = torch.optim.RMSprop(self.value_net.parameters(), lr = alpha)
 
     def action(self, x):
         x = x.to(next(self.policy_net.parameters()).device)
