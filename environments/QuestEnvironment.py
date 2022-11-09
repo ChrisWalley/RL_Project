@@ -148,13 +148,13 @@ class QuestEnvironment:
             reward_win = 10,
             penalty_step = -0.002,
             penalty_time = -0.002,
-            max_episode_steps = 5000
+            max_episode_steps = 5000,
+            seeds=None
         ):
 
         import numpy as np
 
         self.visited_states_map = np.zeros((21,79)) # a map of counts for each state
-        
 
         # setup the reward manager
         # https://minihack.readthedocs.io/en/latest/getting-started/reward.html?highlight=RewardManager#reward-manager
@@ -180,6 +180,7 @@ class QuestEnvironment:
             max_episode_steps = max_episode_steps,
             obs_crop_h=9,
             obs_crop_w=9,
+            seeds=seeds
         )
 
         env = RenderingWrapper(env)

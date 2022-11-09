@@ -17,9 +17,9 @@ from environments.QuestEnvironment import QuestEnvironment
 sys.path.append('../')
 # if there is a Cuda GPU, then we want to use it
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model_filepath = 'model_weights.pth'
-AE_encoder_model_filepath = 'E_model_weights.pth'
-AE_decoder_model_filepath = 'D_model_weights.pth'
+model_filepath = 'backups/model_weights.pth'
+AE_encoder_model_filepath = 'backups/E_model_weights.pth'
+AE_decoder_model_filepath = 'backups/D_model_weights.pth'
 OBS_SPACE = 'glyphs_crop'
 AE_OBS_SPACE = 'pixel_crop'
 max_steps_per_level = [2000, 5000, 10000, 15000]

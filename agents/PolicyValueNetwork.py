@@ -8,32 +8,35 @@ class PolicyValueNetwork(torch.nn.Module):
         self.obs_space = obs_space
 
         self.policy_net = torch.nn.Sequential(
-            torch.nn.Linear(self.obs_space, 128),
-            torch.nn.Linear(128, 64),
+            torch.nn.Linear(self.obs_space, 1024),
+            torch.nn.Linear(1024, 2048),
+            torch.nn.Linear(2048, 4096),
+            torch.nn.Linear(4096, 4096),
             torch.nn.Dropout(p=0.6),
-            torch.nn.Linear(64, 32),
-            torch.nn.Linear(32, action_space),
+            torch.nn.Linear(4096, action_space),
             torch.nn.ReLU(),
             torch.nn.Softmax(dim=-1)
         )
 
         self.value_net = torch.nn.Sequential(
-            torch.nn.Linear(self.obs_space, 128),
-            torch.nn.Linear(128, 64),
+            torch.nn.Linear(self.obs_space, 1024),
+            torch.nn.Linear(1024, 2048),
+            torch.nn.Linear(2048, 4096),
+            torch.nn.Linear(4096, 4096),
             torch.nn.Dropout(p=0.6),
-            torch.nn.Linear(64, self.obs_space),
-            torch.nn.ReLU(),
-            torch.nn.Linear(self.obs_space, 1),
+            torch.nn.Linear(4096, 1024),
+            torch.nn.Linear(1024, 1),
+            torch.nn.ReLU()
         )
 
     def action(self, x):
-        x = x.to(next(self.policy_net.parameters()).device)
+        x = torch.nn.functional.normalize(x.to(next(self.policy_net.parameters()).device))
         log_probs = self.policy_net(x)
         distrib = torch.distributions.Categorical(log_probs)
         act = distrib.sample()
         return act.item(), distrib.log_prob(act)
 
     def value(self, x):
-        x = x.to(next(self.policy_net.parameters()).device)
+        x = torch.nn.functional.normalize(x.to(next(self.policy_net.parameters()).device))
         value = self.value_net(x)
         return value

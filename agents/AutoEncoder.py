@@ -43,7 +43,7 @@ class Encoder(nn.Module):
         )
 
     def forward(self, x):
-        x = torch.tensor(x).to(next(self.encoder_cnn.parameters()).device).unsqueeze(0)
+        x = torch.nn.functional.normalize(torch.tensor(x).to(next(self.encoder_cnn.parameters()).device).unsqueeze(0))
         x = self.encoder_cnn(x)
         x = self.flatten(x)
         x = self.encoder_lin(x)
@@ -84,7 +84,7 @@ class Decoder(nn.Module):
         self.Upsample = nn.Upsample(size=(fc2_input_dim[0], fc2_input_dim[1]))
 
     def forward(self, x):
-        x = x.unsqueeze(0)
+        x = torch.nn.functional.normalize(x.unsqueeze(0))
         x = self.decoder_lin(x)
         x = self.unflatten(x)
         x = self.decoder_conv(x)
