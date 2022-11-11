@@ -77,7 +77,7 @@ class RenderingWrapper(gym.Wrapper):
         else:
             return self.env.render()
 
-    def reset(self, save_video=True):
+    def reset(self, save_video=False):
 
         self.episode += 1
 
@@ -125,6 +125,14 @@ class QuestEnvironment:
         if msg == 'The door opens.':
             return 10
 
+        if msg in [
+            'You dont have anything to eat.',
+            'Its solid stone.',
+            'There is nothing here to pick up.',
+            'You dont have anything to use or apply.'
+        ]:
+            return -0.00001
+
         return 0
 
     def _get_actions(self):
@@ -148,10 +156,10 @@ class QuestEnvironment:
             #nethack.Command.LOOK, 
             # nethack.Command.JUMP, 
             # nethack.Command.SWAP,
-            # nethack.Command.ZAP,
+            nethack.Command.ZAP,
             # nethack.Command.LOOT,
             # nethack.Command.PUTON,
-            # nethack.Command.APPLY,
+            nethack.Command.APPLY,
             # nethack.Command.CAST,
             # nethack.Command.DIP,
             # nethack.Command.READ,
@@ -186,7 +194,7 @@ class QuestEnvironment:
         reward_manager.add_kill_event("minotaur", reward=10)
 
         # reward not bumping into things...
-        reward_manager.add_message_event('', 0.0001)
+        #reward_manager.add_message_event('', 0.0001)
 
         reward_manager.add_custom_reward_fn(self.message_reward)
 
@@ -201,7 +209,7 @@ class QuestEnvironment:
             reward_win = reward_win,
             penalty_step = penalty_step,
             penalty_time = penalty_time,
-            max_episode_steps = 100000000000000000,
+            max_episode_steps = max_episode_steps,
             obs_crop_h=9,
             obs_crop_w=9,
         )
