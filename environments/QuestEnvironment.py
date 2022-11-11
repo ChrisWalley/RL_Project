@@ -77,7 +77,7 @@ class RenderingWrapper(gym.Wrapper):
         else:
             return self.env.render()
 
-    def reset(self, save_video=False):
+    def reset(self, save_video=False, seed = None):
 
         self.episode += 1
 
@@ -95,6 +95,10 @@ class RenderingWrapper(gym.Wrapper):
         self.pixel_frames.clear()
 
         obs = self.env.reset()
+
+        if seed:
+            self.seed_value = seed
+            
         self.env.seed(self.seed_value)
         self.pixels = obs['pixel']
 
