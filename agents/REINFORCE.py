@@ -86,9 +86,9 @@ def load_env_and_models(difficulty_level, agent_p_lr, agent_v_lr, AE_lr):
 
     # Define optimizers and schedulers for our value and policy network
 
-    agent_policy_optimizer = torch.optim.RMSprop(agent.policy_net.parameters(), lr=agent_p_lr)
+    agent_policy_optimizer = torch.optim.Adam(agent.policy_net.parameters(), lr=agent_p_lr)
     agent_policy_sched = torch.optim.lr_scheduler.ReduceLROnPlateau(agent_policy_optimizer)
-    agent_value_optimizer = torch.optim.RMSprop(agent.value_net.parameters(), lr=agent_v_lr)
+    agent_value_optimizer = torch.optim.Adam(agent.value_net.parameters(), lr=agent_v_lr)
     agent_value_sched = torch.optim.lr_scheduler.ReduceLROnPlateau(agent_value_optimizer)
 
     # Calculate the input dimensions for the autoencoder
@@ -174,7 +174,7 @@ if __name__ == "__main__":
     rng = default_rng()
 
     # Whether to use the autoencoder, or the raw state
-    use_AE = False
+    use_AE = True
 
     # Begin generating episodes
     for k in range(num_episodes):
