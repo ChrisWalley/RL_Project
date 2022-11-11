@@ -10,11 +10,8 @@ class PolicyValueNetwork(torch.nn.Module):
         self.policy_net = torch.nn.Sequential(
             torch.nn.Linear(self.obs_space, 1024),
             torch.nn.Linear(1024, 2048),
-            torch.nn.ReLU(),
             torch.nn.Linear(2048, 4096),
-            torch.nn.ReLU(),
             torch.nn.Linear(4096, 4096),
-            torch.nn.ReLU(),
             torch.nn.Linear(4096, action_space),
             torch.nn.ReLU(),
             torch.nn.Softmax(dim=-1)
@@ -23,15 +20,10 @@ class PolicyValueNetwork(torch.nn.Module):
         self.value_net = torch.nn.Sequential(
             torch.nn.Linear(self.obs_space, 1024),
             torch.nn.Linear(1024, 2048),
-            torch.nn.ReLU(),
             torch.nn.Linear(2048, 4096),
-            torch.nn.ReLU(),
             torch.nn.Linear(4096, 4096),
-            torch.nn.ReLU(),
             torch.nn.Linear(4096, 1024),
-            torch.nn.ReLU(),
             torch.nn.Linear(1024, 1),
-            torch.nn.ReLU()
         )
 
     def action(self, x):

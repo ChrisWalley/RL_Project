@@ -174,7 +174,7 @@ if __name__ == "__main__":
     rng = default_rng()
 
     # Whether to use the autoencoder, or the raw state
-    use_AE = True
+    use_AE = False
 
     # Begin generating episodes
     for k in range(num_episodes):
