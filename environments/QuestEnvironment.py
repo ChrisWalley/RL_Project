@@ -6,15 +6,13 @@ from nle import nethack
 from minihack import RewardManager
 from gym.envs.classic_control import rendering
 
-SEED = 42
 
 # wrapper for rendering the env as an image
 class RenderingWrapper(gym.Wrapper):
 
-    def __init__(self, env, seed):
+    def __init__(self, env):
         super().__init__(env)
         self.env = env
-        self.seed_value = seed
         self.viewer = rendering.SimpleImageViewer()
         self.viewer.width = 1280
         self.viewer.height = 520
@@ -95,11 +93,6 @@ class RenderingWrapper(gym.Wrapper):
         self.pixel_frames.clear()
 
         obs = self.env.reset()
-
-        if seed:
-            self.seed_value = seed
-            
-        self.env.seed(self.seed_value)
         self.pixels = obs['pixel']
 
         # TODO: make sure this is ok
@@ -179,18 +172,18 @@ class QuestEnvironment:
     # https://minihack.readthedocs.io/en/latest/envs/skills/quest.html
     def create(
             self,
+            env_type = "MiniHack-Quest-Hard-v0",
             reward_lose = -10,
             reward_win = 10,
             penalty_step = -0.002,
-            penalty_time = 0.002,
+            penalty_time = -0.002,
             max_episode_steps = 5000,
-            seed=SEED
+            seeds=None
         ):
 
         import numpy as np
 
         self.visited_states_map = np.zeros((21,79)) # a map of counts for each state
-        self.previous_coordinates = (0,0)
 
         # setup the reward manager
         # https://minihack.readthedocs.io/en/latest/getting-started/reward.html?highlight=RewardManager#reward-manager
@@ -204,8 +197,9 @@ class QuestEnvironment:
 
 
         # make the environment
+
         env = gym.make(
-            "MiniHack-Quest-Hard-v0",
+            env_type,
             actions = self._get_actions(),
             reward_manager = reward_manager,
             observation_keys = ("glyphs", "pixel", "glyphs_crop", "blstats", "pixel_crop", "chars_crop", "message", "screen_descriptions"),
@@ -216,9 +210,10 @@ class QuestEnvironment:
             max_episode_steps = max_episode_steps,
             obs_crop_h=9,
             obs_crop_w=9,
+            seeds=seeds
         )
 
-        env = RenderingWrapper(env, seed)
+        env = RenderingWrapper(env)
 
         #env = gym.wrappers.RecordVideo(env, "./video", episode_trigger = lambda x: x % 2 == 0)
         #env = gym.wrappers.Monitor(env, './video', video_callable=lambda x: x % 2 == 0, force=True)
